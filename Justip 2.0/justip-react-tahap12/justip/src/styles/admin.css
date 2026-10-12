@@ -1,0 +1,487 @@
+/* ===== Admin & Dev Dashboard Styles (Bitforce TI) ===== */
+
+/* Header */
+.adm-header {
+  background: #ffffff;
+  padding: 14px 18px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(15, 45, 91, 0.03);
+}
+
+.adm-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adm-brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: none;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+.adm-brand-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--navy);
+}
+
+.adm-badge-dev {
+  font-size: 10px;
+  font-weight: 800;
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.adm-brand-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.adm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adm-btn-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--navy);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.adm-btn-action:hover {
+  background: #e2e8f0;
+}
+
+.adm-btn-action.danger {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.adm-btn-action.danger:hover {
+  background: #fca5a5;
+}
+
+/* Content Container */
+.adm-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px 110px !important;
+}
+
+/* Hero Revenue Card */
+.adm-hero-card {
+  background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+  border-radius: 18px;
+  padding: 18px 16px;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+
+.adm-hero-card::after {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 110px;
+  height: 110px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.adm-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.adm-hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #bae6fd;
+}
+
+.adm-hero-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+}
+
+.adm-hero-amount {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 2px 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.adm-hero-note {
+  font-size: 11.5px;
+  color: #e0f2fe;
+  opacity: 0.95;
+}
+
+/* Grid Metrics (3 Kolom Proporsional) */
+.adm-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.adm-metric-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.adm-metric-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.adm-metric-val {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.adm-metric-val.red { color: #e11d48; }
+.adm-metric-val.green { color: #16a34a; }
+.adm-metric-val.blue { color: #0284c7; }
+
+.adm-metric-sub {
+  font-size: 9.5px;
+  color: #94a3b8;
+}
+
+/* BEP Card */
+.adm-bep-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 15px 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.03);
+}
+
+.adm-bep-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adm-bep-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adm-bep-sub {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.adm-bep-tag {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0284c7;
+  background: #f0f9ff;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.adm-progress-track {
+  width: 100%;
+  height: 9px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  margin: 10px 0 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.adm-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #10b981 100%);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.adm-bep-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Section Header */
+.adm-sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 2px 2px;
+}
+
+.adm-sec-head h3 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.adm-sec-head button {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0284c7;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Transaksi List Items */
+.adm-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-tx-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 13px 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-tx-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 6px;
+}
+
+.adm-tx-id {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adm-tx-date {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-left: 6px;
+}
+
+.adm-tx-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.adm-tx-item b {
+  color: #0f172a;
+}
+
+.adm-tx-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+  font-size: 11px;
+}
+
+.adm-tx-breakdown small {
+  display: block;
+  font-size: 9.5px;
+  color: #64748b;
+  margin-bottom: 1px;
+}
+
+.adm-tx-breakdown b {
+  font-weight: 800;
+}
+
+.adm-tx-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Mitra & Verification */
+.adm-mitra-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-mitra-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.adm-mitra-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adm-mitra-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.adm-mitra-route {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0284c7;
+  margin-top: 2px;
+}
+
+.adm-mitra-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Team Directory */
+.adm-team-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.adm-team-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px dashed #f1f5f9;
+  font-size: 12px;
+}
+
+.adm-team-item:last-child {
+  border-bottom: none;
+}
+
+/* BMC Blocks */
+.adm-bmc-item {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.adm-bmc-item.on {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+
+.adm-bmc-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adm-bmc-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adm-bmc-body {
+  font-size: 11.5px;
+  color: #334155;
+  line-height: 1.5;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Secret Easter Egg Modal */
+.adm-secret-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  animation: fade 0.2s ease both;
+}
+
+.adm-secret-box {
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.25);
+}

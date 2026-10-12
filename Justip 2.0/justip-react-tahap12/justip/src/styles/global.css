@@ -1,0 +1,14 @@
+:root {
+  --white: #fff; --sky: #38bdf8; --sky-soft: #e8f6fe; --navy: #0f2d5b;
+  --muted: #7a8aa3; --line: #e3eaf3; --bg: #f4f9fd;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; width: 100%; overflow-x: hidden; }
+body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #dbeaf6; color: var(--navy); }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; border-radius: 10px; }
+.phone {
+  position: relative; width: 100%; max-width: 430px; height: 100%; margin: 0 auto;
+  background: var(--white); overflow: hidden; box-shadow: 0 0 60px rgba(15, 45, 91, .18);
+}
+@media (min-width: 500px) { .phone { height: min(100%, 900px); margin-top: max(0px, calc((100vh - 900px) / 2)); border-radius: 28px; } }
