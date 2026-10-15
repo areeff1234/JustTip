@@ -29,7 +29,7 @@ export default function Splash({ onDone }) {
         <Logo animated bg="#38BDF8" fg="#fff" className="splash-logo" />
         <h1 className="wordmark" aria-label="justip">
           {'justip'.split('').map((c, i) => (
-            <span key={i} style={{ animationDelay: `${1.5 + i * 0.08}s` }}>{c}</span>
+            <span key={i} className={i === 4 ? 'wordmark-roll' : undefined}>{c}</span>
           ))}
         </h1>
         <p className="tagline">Jasa Titip, Lebih Mudah!</p>
