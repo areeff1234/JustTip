@@ -27,44 +27,83 @@ const Chips = ({ list, value, onPick, label }) => (
   </div>
 );
 
-export function TitipanRow({ p, onEdit, onToggle, onDelete }) {
+export function TitipanRow({ p, onDetail, onEdit, onToggle, onDelete }) {
   const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   return (
-    <article className={`sprow ${p.active ? '' : 'off'}`}>
-      <span className="sp-img">
-        {p.photos?.[0] ? <img className="sp-ph" src={p.photos[0]} alt="" /> : ART[p.art || 'box']}
-      </span>
-      <div className="sp-info">
-        <h4>{p.name}{p.label ? <><br />({p.label})</> : null}</h4>
-        <b>{rp(p.price)}</b>
-        <small>Kuota/Stok: {p.stock} slot{p.cat ? ` · ${p.cat}` : ''}</small>
-      </div>
-      <div className="sp-act">
-        <button onClick={() => onEdit(p)} aria-label="Ubah barang titipan"><Ic n="pencil" size={16} /></button>
-        <button onClick={() => setMenu(!menu)} aria-label="Menu pilihan" aria-expanded={menu}><Ic n="moreV" size={16} /></button>
-      </div>
-      <button
-        className={`stat ${p.draft ? 'draft' : p.active ? 'on' : ''}`}
-        onClick={() => onToggle(p.id)}
-        aria-pressed={p.active}
-      >
-        {p.draft ? 'Draf' : p.active ? 'Aktif' : 'Nonaktif'}
-      </button>
-      {menu && (
-        <div className="menu" role="menu">
-          <button role="menuitem" onClick={() => { onToggle(p.id); setMenu(false); }}>
-            {p.draft ? 'Publikasikan' : p.active ? 'Nonaktifkan' : 'Aktifkan'}
-          </button>
-          <button role="menuitem" className="del" onClick={() => { onDelete(p.id); setMenu(false); }}>
-            <Ic n="trash" size={14} /> Hapus
-          </button>
+    <>
+      <article className={`sprow ${p.active ? '' : 'off'}`}>
+        <button type="button" className="sp-product" onClick={() => onDetail(p)} aria-label={`Lihat detail ${p.name}`}>
+          <span className="sp-img">
+            {p.photos?.[0] ? <img className="sp-ph" src={p.photos[0]} alt="" /> : ART[p.art || 'box']}
+          </span>
+          <span className="sp-info">
+            <h4>{p.name}{p.label ? <><br />({p.label})</> : null}</h4>
+            <b>{rp(p.price)}</b>
+            <small>Kuota/Stok: {p.stock} slot{p.cat ? ` · ${p.cat}` : ''}</small>
+          </span>
+        </button>
+        <div className="sp-act">
+          <button onClick={() => onEdit(p)} aria-label="Ubah barang titipan"><Ic n="pencil" size={16} /></button>
+          <button onClick={() => setMenu(!menu)} aria-label="Menu pilihan" aria-expanded={menu}><Ic n="moreV" size={16} /></button>
+        </div>
+        <button
+          className={`stat ${p.draft ? 'draft' : p.active ? 'on' : ''}`}
+          onClick={() => onToggle(p.id)}
+          aria-pressed={p.active}
+        >
+          {p.draft ? 'Draf' : p.active ? 'Aktif' : 'Nonaktif'}
+        </button>
+        {menu && (
+          <div className="menu" role="menu">
+            <button role="menuitem" onClick={() => { onToggle(p.id); setMenu(false); }}>
+              {p.draft ? 'Publikasikan' : p.active ? 'Nonaktifkan' : 'Aktifkan'}
+            </button>
+            <button role="menuitem" className="del" onClick={() => { setMenu(false); setConfirmDelete(true); }}>
+              <Ic n="trash" size={14} /> Hapus
+            </button>
+          </div>
+        )}
+      </article>
+      {confirmDelete && (
+        <div className="delete-overlay" onClick={() => setConfirmDelete(false)}>
+          <section
+            className="delete-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={`delete-title-${p.id}`}
+            aria-describedby={`delete-desc-${p.id}`}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setConfirmDelete(false);
+            }}
+          >
+            <span className="delete-icon"><Ic n="trash" size={22} /></span>
+            <h2 id={`delete-title-${p.id}`}>Hapus titipan ini?</h2>
+            <p id={`delete-desc-${p.id}`}>
+              <b>{p.name}</b> akan dihapus dari katalog dan tidak bisa dikembalikan.
+            </p>
+            <div className="delete-actions">
+              <button type="button" className="btn out" autoFocus onClick={() => setConfirmDelete(false)}>Batal</button>
+              <button
+                type="button"
+                className="btn delete-confirm"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  onDelete(p.id);
+                }}
+              >
+                <Ic n="trash" size={15} /> Hapus Titipan
+              </button>
+            </div>
+          </section>
         </div>
       )}
-    </article>
+    </>
   );
 }
 
-export function TitipanPage({ products, onAdd, onEdit, onToggle, onDelete }) {
+export function TitipanPage({ products, onAdd, onDetail, onEdit, onToggle, onDelete }) {
   const [tab, setTab] = useState('semua');
   const filtered = products.filter((p) => {
     if (tab === 'aktif') return p.active && !p.draft;
@@ -95,6 +134,7 @@ export function TitipanPage({ products, onAdd, onEdit, onToggle, onDelete }) {
           <TitipanRow
             key={p.id}
             p={p}
+            onDetail={onDetail}
             onEdit={onEdit}
             onToggle={onToggle}
             onDelete={onDelete}
@@ -112,6 +152,62 @@ export function TitipanPage({ products, onAdd, onEdit, onToggle, onDelete }) {
         )}
       </div>
     </main>
+  );
+}
+
+export function TitipanDetail({ item, back, onEdit }) {
+  const status = item.draft ? 'Draf' : item.active ? 'Aktif' : 'Nonaktif';
+
+  return (
+    <div className="a-form pf">
+      <Bar title="Detail Titipan" back={back} />
+      <main className="scroll pad acc">
+        <div className="td-gallery">
+          {item.photos?.[0]
+            ? <img className="td-cover" src={item.photos[0]} alt={item.name} />
+            : <div className="td-cover td-placeholder">{ART[item.art || 'box']}</div>}
+          {item.photos?.length > 1 && (
+            <div className="td-thumbs">
+              {item.photos.slice(1).map((photo, index) => (
+                <img key={`${photo}-${index}`} src={photo} alt={`${item.name}, foto ${index + 2}`} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <section className="td-summary">
+          <span className={`td-status ${item.draft ? 'draft' : item.active ? 'active' : ''}`}>{status}</span>
+          <h2>{item.name}</h2>
+          {item.cat && <p>{item.cat}</p>}
+          <strong>{rp(item.price)}</strong>
+        </section>
+
+        <section className="td-stock">
+          <Ic n="bag" size={20} />
+          <span><small>Kuota / stok tersedia</small><b>{item.stock} slot</b></span>
+        </section>
+
+        <section className="td-section">
+          <h3>Deskripsi & catatan jastip</h3>
+          <p>{item.desc || 'Belum ada deskripsi untuk titipan ini.'}</p>
+        </section>
+
+        <section className="td-section">
+          <h3>Informasi barang</h3>
+          <dl>
+            {item.kondisi && <><dt>Kondisi</dt><dd>{item.kondisi}</dd></>}
+            {item.label && <><dt>Label</dt><dd>{item.label}</dd></>}
+            {item.nota && <><dt>Bukti pembelian</dt><dd>Ada nota / bukti struk</dd></>}
+            {item.garansi && <><dt>Garansi</dt><dd>Bergaransi</dd></>}
+          </dl>
+        </section>
+      </main>
+      <footer className="co-bar pf-bar">
+        <button type="button" className="btn" onClick={() => onEdit(item)}>
+          <Ic n="pencil" size={16} /> Ubah Detail & Stok
+        </button>
+      </footer>
+    </div>
   );
 }
 

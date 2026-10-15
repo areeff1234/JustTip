@@ -68,3 +68,10 @@ Chat Pemesan <-> Justipper tersimpan dan diperbarui realtime melalui Cloud Fires
 3. Tambahkan domain lokal/produksi ke Authentication > Settings > Authorized domains.
 4. Dari folder `justip`, jalankan `firebase login`, `firebase use --add`, lalu `firebase deploy --only firestore:rules` untuk memasang rules dari `firestore.rules`.
 5. `firebase.json` hanya memuat konfigurasi deploy rules; koleksi Firestore dibuat otomatis saat pengguna login/chat pertama kali.
+
+### Notifikasi perangkat & email
+1. Di Firebase Console > Project settings > Cloud Messaging, buat Web Push certificate dan isi `VITE_FIREBASE_VAPID_KEY` di `.env.local` serta Environment Variables Vercel.
+2. Preferensi tersimpan per akun di browser dan disinkronkan ke dokumen private `users/{uid}`. Token FCM disimpan di `users/{uid}/pushTokens/{tokenId}`; Firestore Rules membatasi akses token ke pemiliknya.
+3. Firebase Functions mengirim FCM dan email Resend untuk pesan chat baru. Aktifkan Firebase Functions (project harus memakai paket Firebase yang mendukung Cloud Functions), set secret `RESEND_API_KEY` dan parameter `EMAIL_FROM`, lalu pasang dependencies dari folder `functions` dengan Node.js 22.
+4. Deploy Functions secara terpisah setelah meninjau kredensial dan project aktif. Jangan masukkan secret Resend ke `.env.local` browser atau repository.
+5. Notifikasi status pesanan dan rute masih berasal dari data lokal aplikasi. Notifikasi tersebut tampil di browser saat Justip terbuka; pengiriman server-side untuk jenis itu memerlukan migrasi event pesanan/produk ke Firestore.

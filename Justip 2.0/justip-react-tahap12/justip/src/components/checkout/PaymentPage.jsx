@@ -2,28 +2,31 @@ import { useState } from 'react';
 import { Ic, rp } from '../ui.jsx';
 import { useJustip } from '../../context/JustipContext.jsx';
 
-export default function PaymentPage({ co, back, onPay, say }) {
+export default function PaymentPage({ co, products, back, onPay, say }) {
   const { qrisConfig, meetingPoints } = useJustip();
   const [method, setMethod] = useState(co.payId || 'qris');
   const [verifying, setVerifying] = useState(false);
-  const [paidSuccess, setPaidSuccess] = useState(false);
+  const stockIssue = co.cart.find(({ p, qty }) => {
+    const current = products.find((product) => product.id === p.id);
+    const stock = Number(current?.stock ?? 99);
+    return !current || current.active === false || !Number.isFinite(stock) || qty > Math.max(0, stock);
+  });
 
   const selectedMp =
     meetingPoints.find((m) => m.id === co.selectedMpId) || meetingPoints[0];
 
   const handlePayQris = () => {
+    if (stockIssue) return say('Stok berubah dan tidak mencukupi. Kembali ke keranjang untuk menyesuaikan jumlah.');
     setVerifying(true);
     setTimeout(() => {
       setVerifying(false);
-      setPaidSuccess(true);
+      if (!onPay(true, 'QRIS')) return;
       if (say) say(`Pembayaran QRIS ${rp(co.total)} berhasil diverifikasi!`);
-      setTimeout(() => {
-        onPay(true, 'QRIS');
-      }, 1000);
     }, 1400);
   };
 
   const handlePayCod = () => {
+    if (stockIssue) return say('Stok berubah dan tidak mencukupi. Kembali ke keranjang untuk menyesuaikan jumlah.');
     onPay(false, 'Bayar Tunai saat Ketemuan (COD)');
   };
 
@@ -37,6 +40,11 @@ export default function PaymentPage({ co, back, onPay, say }) {
       </header>
 
       <main className="scroll pad">
+        {stockIssue && (
+          <p className="stock-error" role="alert">
+            Stok {stockIssue.p.name} berubah dan jumlah di keranjang melebihi stok. Kembali ke keranjang untuk menyesuaikan pesanan.
+          </p>
+        )}
         {/* Info Lokasi Ketemuan */}
         <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--line)', marginBottom: 12 }}>
           <small style={{ color: '#64748b', fontSize: 11, display: 'block' }}>Titik Temu Serah Terima:</small>
@@ -319,11 +327,6 @@ export default function PaymentPage({ co, back, onPay, say }) {
               4. Setelah bayar di aplikasi bank, klik tombol konfirmasi di bawah.
             </div>
 
-            {paidSuccess && (
-              <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 10, background: '#dcfce7', border: '1px solid #86efac', color: '#166534', fontSize: 12, fontWeight: 700 }}>
-                ✓ Pembayaran QRIS Berhasil Diverifikasi! Dana 100% langsung diterima di akun {qrisConfig.provider || 'DANA/SeaBank'} Jastiper.
-              </div>
-            )}
           </section>
         )}
 
@@ -354,20 +357,19 @@ export default function PaymentPage({ co, back, onPay, say }) {
           <button
             type="button"
             className="btn wide"
-            disabled={verifying || paidSuccess}
+            disabled={verifying || !!stockIssue}
             onClick={handlePayQris}
             style={{ padding: 13, fontSize: 13.5, fontWeight: 800, background: '#16a34a', borderColor: '#16a34a' }}
           >
             {verifying
               ? 'Memverifikasi Pembayaran QRIS...'
-              : paidSuccess
-              ? '✓ Pembayaran Berhasil'
               : 'Saya Sudah Bayar via QRIS'}
           </button>
         ) : (
           <button
             type="button"
             className="btn wide"
+            disabled={!!stockIssue}
             onClick={handlePayCod}
             style={{ padding: 13, fontSize: 13.5, fontWeight: 800 }}
           >

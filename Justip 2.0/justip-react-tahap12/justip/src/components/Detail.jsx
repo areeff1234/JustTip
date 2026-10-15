@@ -7,6 +7,9 @@ export default function Detail({ p, back, onOrder, onChat }) {
   const [size, setSize] = useState(38);
   const [fav, setFav] = useState(false);
   const [toast, setToast] = useState('');
+  const rawStock = Number(p.stock ?? 99);
+  const stock = Number.isFinite(rawStock) ? Math.max(0, rawStock) : 0;
+  const outOfStock = stock === 0;
   const say = (t) => { setToast(t); setTimeout(() => setToast(''), 1800); };
   return (
     <>
@@ -54,8 +57,10 @@ export default function Detail({ p, back, onOrder, onChat }) {
           <div className="sec tight"><h3>Pilih Ukuran</h3><button><Ic n="ruler" size={14} /> Panduan Ukuran</button></div>
           <div className="sizes">{p.sizes.map((s) => (
             <button key={s} className={s === size ? 'on' : ''} onClick={() => setSize(s)} aria-pressed={s === size}>{s}</button>))}</div>
-          <p className="stock">Stok: {p.stock || 6} slot tersedia</p>
         </>)}
+        <p className={`stock ${outOfStock ? 'stock-error' : ''}`} role={outOfStock ? 'status' : undefined}>
+          {outOfStock ? 'Stok habis' : `Stok: ${stock} slot tersedia`}
+        </p>
 
         <div className="sec"><h3>Deskripsi Titipan</h3></div>
         <p className="desc">{p.desc}</p>
@@ -78,7 +83,9 @@ export default function Detail({ p, back, onOrder, onChat }) {
       </main>
       <footer className="cta-bar">
         <button className="btn ghost" onClick={() => (onChat ? onChat(p) : say('Chat jastiper belum tersedia'))}><Ic n="chat" size={18} />Chat {p.justipper ? p.justipper.split(' ')[0] : 'Jastiper'}</button>
-        <button className="btn" onClick={() => (onOrder ? onOrder(p, p.sizes ? size : undefined) : say('Pesanan hadir di tahap berikutnya'))}><Ic n="bag" size={18} />Titip ke {p.justipper ? p.justipper.split(' ')[0] : 'Jastiper'}</button>
+        <button className="btn" disabled={outOfStock} onClick={() => (onOrder ? onOrder(p, p.sizes ? size : undefined) : say('Pesanan hadir di tahap berikutnya'))}>
+          <Ic n="bag" size={18} />{outOfStock ? 'Stok Habis' : `Titip ke ${p.justipper ? p.justipper.split(' ')[0] : 'Jastiper'}`}
+        </button>
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
     </>

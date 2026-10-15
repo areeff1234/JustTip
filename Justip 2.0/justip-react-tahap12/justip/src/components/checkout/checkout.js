@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export const COLOR = { 1: 'White', 2: 'Rose Gold', 3: 'Navy', 4: 'White', 6: 'Black' };
 
@@ -50,10 +50,20 @@ export const payInfo = (id) => {
 
 export function useCheckout() {
   const [cart, setCart] = useState([]); // { p, qty, size }
+  const cartRef = useRef(cart);
   const [selectedMpId, setSelectedMpId] = useState('mp1');
   const [notes, setNotes] = useState('');
   const [payId, setPayId] = useState('qris');
 
+  const updateCart = (updater) => {
+    const next = updater(cartRef.current);
+    cartRef.current = next;
+    setCart(next);
+  };
+  const stockLimit = (p) => {
+    const stock = Number(p.stock ?? 99);
+    return Number.isFinite(stock) ? Math.max(0, Math.min(99, Math.floor(stock))) : 0;
+  };
   const subtotal = cart.reduce((s, i) => s + i.p.price * i.qty, 0);
   // BMC: Biaya layanan 2,5% dari subtotal, maksimal Rp5.000
   const fee = Math.min(5000, Math.round(subtotal * 0.025));
@@ -74,22 +84,37 @@ export function useCheckout() {
     ship,
     total,
     stores,
-    start: (p, size) => setCart([{ p, qty: 1, size }]),
-    add: (p) =>
-      setCart((c) =>
-        c.some((i) => i.p.id === p.id)
-          ? c.map((i) => (i.p.id === p.id ? { ...i, qty: i.qty + 1 } : i))
-          : [...c, { p, qty: 1 }]
-      ),
-    qty: (id, d) =>
-      setCart((c) =>
-        c.map((i) =>
-          i.p.id === id ? { ...i, qty: Math.max(1, Math.min(99, i.qty + d)) } : i
+    stockLimit,
+    start: (p, size) => {
+      if (!stockLimit(p)) return false;
+      updateCart(() => [{ p, qty: 1, size }]);
+      return true;
+    },
+    add: (p) => {
+      const current = cartRef.current.find((i) => i.p.id === p.id);
+      if (!stockLimit(p) || (current && current.qty >= stockLimit(p))) return false;
+      updateCart((items) =>
+        items.some((i) => i.p.id === p.id)
+          ? items.map((i) => (i.p.id === p.id ? { ...i, p, qty: i.qty + 1 } : i))
+          : [...items, { p, qty: 1 }]
+      );
+      return true;
+    },
+    qty: (id, d, available = null) => {
+      const item = cartRef.current.find((i) => i.p.id === id);
+      if (!item) return false;
+      const limit = available === null ? stockLimit(item.p) : Math.max(0, Math.min(99, Number(available)));
+      if (d > 0 && item.qty >= limit) return false;
+      updateCart((items) =>
+        items.map((i) =>
+          i.p.id === id ? { ...i, qty: Math.max(1, Math.min(limit || 99, i.qty + d)) } : i
         )
-      ),
-    remove: (id) => setCart((c) => c.filter((i) => i.p.id !== id)),
+      );
+      return true;
+    },
+    remove: (id) => updateCart((items) => items.filter((i) => i.p.id !== id)),
     removeStore: (st) =>
-      setCart((c) => c.filter((i) => (i.p.store || i.p.justipper) !== st)),
-    clear: () => setCart([]),
+      updateCart((items) => items.filter((i) => (i.p.store || i.p.justipper) !== st)),
+    clear: () => updateCart(() => []),
   };
 }

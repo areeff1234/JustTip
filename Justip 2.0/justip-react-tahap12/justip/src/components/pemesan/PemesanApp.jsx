@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Home from '../Home.jsx';
 import Kategori from '../Kategori.jsx';
 import ProductList from '../ProductList.jsx';
@@ -21,8 +21,23 @@ import { useJustip } from '../../context/JustipContext.jsx';
 const NAV = (n) => [['home', 'Beranda'], ['grid', 'Kategori'], ['box', 'Pesanan'], ['chat', 'Chat', n], ['user', 'Akun']];
 const NO_NAV = ['room', 'orderdetail', 'detail', 'checkout', 'bayar', 'sukses'];
 
+const notificationKey = (order) => {
+  const latestUpdate = order.timeline?.[order.timeline.length - 1];
+  return `${order.id ?? order.no}:${latestUpdate?.stage ?? order.stage ?? order.status}`;
+};
+
+const loadReadNotifications = (key) => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(saved) ? saved.filter((item) => typeof item === 'string') : [];
+  } catch (error) {
+    console.error('Gagal memuat status notifikasi:', error);
+    return [];
+  }
+};
+
 export default function PemesanApp({ session, logout, acc, chat }) {
-  const { orders, createOrder, createCustomRequest, cancelOrder, addOrderReview, meetingPoints } = useJustip();
+  const { products, orders, createOrder, createCustomRequest, cancelOrder, addOrderReview, meetingPoints } = useJustip();
   const [roomId, setRoomId] = useState(null);
   const [deep, setDeep] = useState(false);
   const [stack, setStack] = useState([{ page: 'home' }]);
@@ -32,14 +47,43 @@ export default function PemesanApp({ session, logout, acc, chat }) {
   const [customOpen, setCustomOpen] = useState(false);
   const [toast, say] = useToast();
   const co = useCheckout();
+  const notificationStorageKey = `justip_read_order_notifications_${session?.uid || session?.email || session?.name || 'demo'}`;
+  const [readNotifications, setReadNotifications] = useState(() => loadReadNotifications(notificationStorageKey));
+
+  const newOrderNotifications = orders.filter((order) => {
+    const latestUpdate = order.timeline?.[order.timeline.length - 1];
+    return latestUpdate?.time === 'Baru saja' || order.date === 'Baru saja';
+  });
+  const unreadNotificationCount = acc.prefs?.t?.order
+    ? newOrderNotifications.filter((order) => !readNotifications.includes(notificationKey(order))).length
+    : 0;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(notificationStorageKey, JSON.stringify(readNotifications));
+    } catch (error) {
+      console.error('Gagal menyimpan status notifikasi:', error);
+    }
+  }, [notificationStorageKey, readNotifications]);
 
   const cur = stack[stack.length - 1];
   const go = (page, product) => setStack((s) => [...s, { page, product }]);
   const back = () => { setPicking(false); setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)); };
-  const tab = (n) => { setPicking(false); setStack([{ page: n === 'Beranda' ? 'home' : n === 'Kategori' ? 'kategori' : n }]); };
+  const markNotificationsRead = () => {
+    const keys = newOrderNotifications.map(notificationKey);
+    setReadNotifications((current) => [...new Set([...current, ...keys])]);
+  };
+  const tab = (n) => {
+    if (n === 'Pesanan') markNotificationsRead();
+    setPicking(false);
+    setStack([{ page: n === 'Beranda' ? 'home' : n === 'Kategori' ? 'kategori' : n }]);
+  };
   const active = { home: 'Beranda', kategori: 'Kategori', list: 'Kategori' }[cur.page] ?? cur.page;
 
-  const startOrder = (p, size) => { co.start(p, size); go('checkout'); };
+  const startOrder = (p, size) => {
+    if (!co.start(p, size)) return say(`${p.name} sedang habis.`);
+    go('checkout');
+  };
   const openChat = async (request) => {
     try {
       const id = await chat.start(request);
@@ -49,7 +93,12 @@ export default function PemesanApp({ session, logout, acc, chat }) {
       say(error.message);
     }
   };
-  const pick = (p) => { co.add(p); setPicking(false); back(); say('Produk ditambahkan ke pesanan'); };
+  const pick = (p) => {
+    if (!co.add(p)) return say(`Stok ${p.name} tidak mencukupi untuk ditambahkan.`);
+    setPicking(false);
+    back();
+    say('Produk ditambahkan ke pesanan');
+  };
   const cancel = (no, reason) => {
     cancelOrder(no, reason, 'Kamu');
     say('Pesanan dibatalkan');
@@ -58,6 +107,7 @@ export default function PemesanApp({ session, logout, acc, chat }) {
   const handleCustomSubmit = (data) => {
     const newReq = createCustomRequest({
       ...data,
+      notes: data.note,
       buyer: acc.profile?.name || session?.name || 'Nur Arif',
       phone: acc.profile?.phone || session?.phone || '+62 812 3456 7890',
     });
@@ -67,33 +117,49 @@ export default function PemesanApp({ session, logout, acc, chat }) {
   };
 
   const pay = (isPaid = false, payMethod = 'QRIS') => {
-    const selectedMp = meetingPoints.find((m) => m.id === co.selectedMpId) || meetingPoints[0];
-    const o = createOrder({
-      cart: co.cart,
-      buyerName: acc.profile?.name || session?.name || 'Nur Arif',
-      buyerPhone: acc.profile?.phone || session?.phone || '+62 812 3456 7890',
-      meetingPoint: selectedMp,
-      payMethod,
-      subtotal: co.subtotal,
-      fee: co.fee,
-      total: co.total,
-      notes: co.notes,
-      isPaid,
-    });
-    setOrder(o);
-    co.clear();
-    go('sukses');
+    try {
+      const selectedMp = meetingPoints.find((m) => m.id === co.selectedMpId) || meetingPoints[0];
+      const o = createOrder({
+        cart: co.cart,
+        buyerName: acc.profile?.name || session?.name || 'Nur Arif',
+        buyerPhone: acc.profile?.phone || session?.phone || '+62 812 3456 7890',
+        meetingPoint: selectedMp,
+        payMethod,
+        subtotal: co.subtotal,
+        fee: co.fee,
+        total: co.total,
+        notes: co.notes,
+        isPaid,
+      });
+      setOrder(o);
+      co.clear();
+      go('sukses');
+      return true;
+    } catch (error) {
+      say(error.message);
+      return false;
+    }
   };
 
   return (
     <div className="app">
       <div className="page">
-        {cur.page === 'home' && <Home go={go} back={back} onRequestCustom={() => setCustomOpen(true)} />}
+        {cur.page === 'home' && (
+          <Home
+            go={go}
+            back={back}
+            profile={acc.profile}
+            onNotifications={() => tab('Pesanan')}
+            onProfile={() => tab('Akun')}
+            onRequestCustom={() => setCustomOpen(true)}
+            unreadNotifications={unreadNotificationCount}
+          />
+        )}
         {cur.page === 'kategori' && <Kategori go={go} back={back} />}
         {cur.page === 'list' && <ProductList go={go} back={back} pick={picking ? pick : undefined} onRequestCustom={() => setCustomOpen(true)} />}
         {cur.page === 'detail' && <Detail p={cur.product} back={back} onOrder={startOrder} onChat={(p) => openChat({ peerName: p.justipper || p.store, product: p })} />}
-        {cur.page === 'checkout' && <CartPage co={co} go={go} back={back} addMore={() => { setPicking(true); go('list'); }} />}
-        {cur.page === 'bayar' && <PaymentPage co={co} back={back} onPay={pay} say={say} />}
+        {cur.page === 'checkout' && <CartPage co={co} products={products} go={go} back={back} say={say} addMore={() => { setPicking(true); go('list'); }} />}
+        {cur.page === 'bayar' && <PaymentPage co={co} products={products} back={back} onPay={pay} say={say} />}
         {cur.page === 'sukses' && order && <SuccessPage order={order} say={say} onHome={() => tab('Beranda')} onDetail={() => tab('Pesanan')} />}
         {cur.page === 'Pesanan' && <OrdersTab orders={orders} open={(no) => { setSelNo(no); go('orderdetail'); }} />}
         {cur.page === 'orderdetail' && orders.find((o) => o.no === selNo) && (
@@ -119,7 +185,7 @@ export default function PemesanApp({ session, logout, acc, chat }) {
         {cur.page === 'room' && chat.convs.find((c) => c.id === roomId) && <ChatRoom conv={chat.convs.find((c) => c.id === roomId)} role="pemesan" back={back} send={chat.send} read={chat.read} subscribeMessages={chat.subscribeMessages} error={chat.error} allowImages={!chat.isRealtime} />}
         {toast}
       </div>
-      {!NO_NAV.includes(cur.page) && !deep && <BottomNav items={NAV(chat.unread('pemesan'))} active={active} onChange={tab} />}
+      {!NO_NAV.includes(cur.page) && !deep && <BottomNav items={NAV(acc.prefs?.t?.chat ? chat.unread('pemesan') : '')} active={active} onChange={tab} />}
 
       {/* Modal Request Titipan Bebas */}
       <CustomRequestModal

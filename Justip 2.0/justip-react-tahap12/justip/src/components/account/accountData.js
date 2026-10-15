@@ -15,7 +15,41 @@ export const TOPICS = {
   justipper: [['new', 'Titipan masuk', 'Langsung tahu saat ada pesanan titipan baru dari teman kampus', true], ['order', 'Pembaruan pesanan', 'Perubahan atau konfirmasi dari pembeli', true], ['payment', 'Bagi Hasil & QRIS', 'Notifikasi transfer masuk hasil transaksi titipan', true]],
   admin: [['revenue', 'Laporan Bagi Hasil', 'Akumulasi fee platform 2,5% transaksi', true], ['verif', 'Pengajuan Verifikasi Mitra', 'KTM/KTP jastiper baru masuk', true], ['monitoring', 'Monitoring Settlement', 'Pencatatan real-time QRIS & COD', true]],
 };
-export const initPrefs = () => Object.fromEntries(Object.entries(TOPICS).map(([r, l]) => [r, { push: true, email: true, t: Object.fromEntries(l.map(([k, , , on]) => [k, on])) }]));
+export const initPrefs = () => Object.fromEntries(Object.entries(TOPICS).map(([r, l]) => [r, { push: false, email: false, t: Object.fromEntries(l.map(([k, , , on]) => [k, on])) }]));
+
+export const notificationPrefsKey = (session) => (
+  `justip_notification_prefs_${session?.uid || session?.email || session?.name || 'guest'}`
+);
+
+export const loadNotificationPrefs = (session) => {
+  const defaults = initPrefs();
+  try {
+    const saved = JSON.parse(localStorage.getItem(notificationPrefsKey(session)) || 'null');
+    if (!saved || typeof saved !== 'object') return defaults;
+    return Object.fromEntries(Object.entries(defaults).map(([role, initial]) => {
+      const stored = saved[role] || {};
+      return [role, {
+        push: stored.push === true,
+        email: stored.email === true,
+        t: Object.fromEntries(Object.entries(initial.t).map(([topic, enabled]) => [
+          topic,
+          typeof stored.t?.[topic] === 'boolean' ? stored.t[topic] : enabled,
+        ])),
+      }];
+    }));
+  } catch (error) {
+    console.error('Gagal memuat preferensi notifikasi:', error);
+    return defaults;
+  }
+};
+
+export const saveNotificationPrefs = (session, prefs) => {
+  try {
+    localStorage.setItem(notificationPrefsKey(session), JSON.stringify(prefs));
+  } catch (error) {
+    console.error('Gagal menyimpan preferensi notifikasi:', error);
+  }
+};
 export const FAQ = {
   pemesan: [
     ['Gimana cara jastip di Justip?', 'Pilih barang yang tersedia di katalog atau buat request titipan bebas. Tentukan titik temu COD di area kampus yang sudah disediakan Jastiper, lalu bayar pakai QRIS atau bayar tunai (COD) pas serah terima.'],

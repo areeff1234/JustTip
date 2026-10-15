@@ -8,7 +8,6 @@ import Addresses from './Addresses.jsx';
 import NotifSettings from './NotifSettings.jsx';
 import HelpCenter from './HelpCenter.jsx';
 import Verification, { VSTAT } from './Verification.jsx';
-import { useJustip } from '../../context/JustipContext.jsx';
 
 const Row = ({ icon, title, sub, onClick }) => (
   <button className="a-row" onClick={onClick}>
@@ -21,7 +20,6 @@ const Group = ({ title, children }) => (<><h3 className="a-gt">{title}</h3><div 
 export default function Account({ role, acc, logout, stats, say, onDeep }) {
   const [sub, setSub] = useState(null);
   const [dlg, setDlg] = useState(false);
-  const { resetDemoData } = useJustip();
   useEffect(() => { onDeep(!!sub); return () => onDeep(false); }, [sub]);
   const cfg = ACC[role], { profile: p, prefs } = acc;
   const back = () => setSub(null);
@@ -34,7 +32,7 @@ export default function Account({ role, acc, logout, stats, say, onDeep }) {
   if (sub === 'verif') return <Verification {...common} />;
   if (sub === 'help') return <HelpCenter {...common} />;
 
-  const on = [prefs.push && 'Push', prefs.email && 'Email'].filter(Boolean).join(' & ') || 'Nonaktif';
+  const on = [prefs.push && 'Perangkat', prefs.email && 'Email'].filter(Boolean).join(' & ') || 'Nonaktif';
   return (
     <>
       <main className={`scroll pad acc r-${role}`}>
@@ -74,18 +72,6 @@ export default function Account({ role, acc, logout, stats, say, onDeep }) {
           <Row icon="headset" title="Pusat Bantuan" sub="Pertanyaan umum dan hubungi kami" onClick={() => setSub('help')} />
         </Group>
         <button className="a-out" onClick={() => setDlg(true)}><Ic n="out" size={18} />Keluar</button>
-        <button className="a-demo" onClick={acc.simOffline}>Demo: simulasikan tanpa koneksi</button>
-        <button
-          type="button"
-          className="a-demo"
-          style={{ marginTop: 6, color: '#0284c7' }}
-          onClick={() => {
-            resetDemoData();
-            say('Data demo berhasil di-reset ke setelan awal!');
-          }}
-        >
-          Demo: Reset data ke setelan awal
-        </button>
         <p className="a-ver">Justip v0.12.0</p>
       </main>
       {dlg && (

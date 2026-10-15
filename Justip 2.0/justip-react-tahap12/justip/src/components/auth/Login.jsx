@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Field, BackBtn, Wordmark } from './AuthUI.jsx';
 import { isEmail, isPhone, roleName } from './roles.js';
 import { DUMMY_USERS } from '../../context/JustipContext.jsx';
-import { firebaseConfigured } from '../../firebase.js';
+import { firebaseConfigured, requestPasswordReset } from '../../firebase.js';
 
 export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, onEmailLogin, onSecretAdmin, initialError }) {
   const [id, setId] = useState('');
@@ -11,7 +11,9 @@ export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, 
   const [err, setErr] = useState({});
   const [googleError, setGoogleError] = useState(initialError || '');
   const [loginError, setLoginError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const [taps, setTaps] = useState(0);
 
   useEffect(() => {
@@ -66,6 +68,29 @@ export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, 
       setGoogleError(messages[error.code] || error.message || 'Login Google gagal. Silakan coba lagi.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!isEmail(id.trim())) {
+      setErr((current) => ({ ...current, id: 'Masukkan email akun untuk menerima tautan pemulihan.' }));
+      setResetMessage('');
+      return;
+    }
+    setResetBusy(true);
+    setResetMessage('');
+    try {
+      await requestPasswordReset(id.trim());
+      setResetMessage('Tautan untuk mengatur ulang kata sandi sudah dikirim. Periksa email dan folder spam.');
+    } catch (error) {
+      const messages = {
+        'auth/invalid-email': 'Format email tidak valid.',
+        'auth/too-many-requests': 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.',
+        'auth/operation-not-allowed': 'Pemulihan kata sandi belum diaktifkan.',
+      };
+      setResetMessage(messages[error.code] || error.message || 'Tautan pemulihan gagal dikirim.');
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -157,7 +182,6 @@ export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, 
       <Field icon="lock" type="password" placeholder="Password" value={pw} onChange={setPw} error={err.pw} autoComplete="current-password" />
       <div className="rowx">
         <label className="chk"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span /> Ingat saya</label>
-        <button type="button" className="lnk">Lupa password?</button>
       </div>
       <button className="btn wide" disabled={busy}>{busy ? 'Memproses...' : 'Masuk'}</button>
       <div className="or"><span>atau</span></div>
@@ -165,6 +189,13 @@ export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, 
       {firebaseConfigured && <>
         <Field icon="mail" type="email" placeholder="Email" value={id} onChange={setId} error={err.id} autoComplete="email" />
         <Field icon="lock" type="password" placeholder="Password" value={pw} onChange={setPw} error={err.pw} autoComplete="current-password" />
+        <div className="rowx">
+          <span />
+          <button type="button" className="lnk" onClick={resetPassword} disabled={busy || resetBusy}>
+            {resetBusy ? 'Mengirim tautan...' : 'Lupa kata sandi?'}
+          </button>
+        </div>
+        {resetMessage && <p className="reset-message" role="status">{resetMessage}</p>}
         <button className="btn wide" disabled={busy}>{busy ? 'Memproses...' : 'Masuk dengan Email'}</button>
         <div className="or"><span>atau masuk dengan</span></div>
       </>}

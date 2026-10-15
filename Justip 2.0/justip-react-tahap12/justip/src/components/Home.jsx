@@ -7,7 +7,7 @@ import { ART } from './art.jsx';
 import { CATEGORIES } from '../data.js';
 import { useJustip } from '../context/JustipContext.jsx';
 
-export default function Home({ go, onRequestCustom }) {
+export default function Home({ go, onRequestCustom, onNotifications, onProfile, profile, unreadNotifications = 0 }) {
   const [fav, setFav] = useState({});
   const { products } = useJustip();
   const activeProducts = products.filter((p) => p.active !== false);
@@ -16,7 +16,23 @@ export default function Home({ go, onRequestCustom }) {
     <main className="scroll pad">
       <header className="top">
         <div className="brand brand-home"><Logo bg="#38BDF8" fg="#fff" className="home-brand-logo" /><b className="home-brand-name">just<i className="home-brand-roll">i</i>p</b></div>
-        <div className="top-r"><button className="icon-btn" aria-label="Notifikasi"><Ic n="bell" /></button><Avatar /></div>
+        <div className="top-r">
+          <button
+            className="icon-btn notification-btn"
+            type="button"
+            aria-label={unreadNotifications ? `${unreadNotifications} notifikasi belum dibaca` : 'Tidak ada notifikasi belum dibaca'}
+            title={unreadNotifications ? `${unreadNotifications} notifikasi belum dibaca` : 'Tidak ada notifikasi baru'}
+            onClick={onNotifications}
+          >
+            <Ic n="bell" />
+            {unreadNotifications > 0 && (
+              <span className="notification-count" aria-hidden="true">
+                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+              </span>
+            )}
+          </button>
+          <button className="home-avatar-btn" type="button" aria-label="Buka profil akun" title="Profil akun" onClick={onProfile}><Avatar src={profile?.photo} /></button>
+        </div>
       </header>
       <button className="search as-btn" onClick={() => go('list')}><Ic n="search" size={20} /><span>Cari barang, toko, atau link...</span></button>
 

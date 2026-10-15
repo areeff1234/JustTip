@@ -17,7 +17,7 @@ export default function JustipperHome({
   chatUnread,
   products = [],
   onAddProduct,
-  onEditProduct,
+  onDetailProduct,
   onManageMp,
   onManageQris,
 }) {
@@ -171,9 +171,11 @@ export default function JustipperHome({
         </button>
 
         {products.map((p) => (
-          <div
+          <button
+            type="button"
             key={p.id}
-            onClick={() => onEditProduct && onEditProduct(p)}
+            onClick={() => onDetailProduct && onDetailProduct(p)}
+            aria-label={`Lihat detail ${p.name}`}
             style={{
               flex: 'none',
               width: 140,
@@ -187,6 +189,8 @@ export default function JustipperHome({
               cursor: 'pointer',
               position: 'relative',
               textAlign: 'left',
+              font: 'inherit',
+              color: 'var(--navy)',
             }}
           >
             <div style={{ width: '100%', height: 75, borderRadius: 10, background: 'var(--bg)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
@@ -211,7 +215,7 @@ export default function JustipperHome({
                 {p.draft ? 'Draf' : p.active ? 'Aktif' : 'Off'}
               </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

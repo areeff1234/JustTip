@@ -1,19 +1,27 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   deleteUser,
   getAuth,
+  linkWithCredential,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePassword,
   updateProfile,
 } from 'firebase/auth';
-import { doc, getDoc, getFirestore, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { doc, deleteDoc,
+getDoc, getFirestore, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { deleteToken, getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -31,6 +39,67 @@ const app = firebaseConfigured ? (getApps().length ? getApp() : initializeApp(co
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const storage = app ? getStorage(app) : null;
+const pushTokenIdKey = (uid) => `justip_push_token_id_${uid}`;
+
+async function getMessagingWorker() {
+  if (!app || !auth?.currentUser || !db) throw new Error('Push perlu akun Firebase yang sedang login.');
+  if (!import.meta.env.VITE_FIREBASE_VAPID_KEY) {
+    throw new Error('Tambahkan VITE_FIREBASE_VAPID_KEY dari Firebase Console untuk mengaktifkan push.');
+  }
+  if (!('serviceWorker' in navigator) || !(await isSupported())) {
+    throw new Error('Browser ini belum mendukung Firebase Cloud Messaging.');
+  }
+  const workerUrl = new URL('/firebase-messaging-sw.js', window.location.origin);
+  Object.entries(config).forEach(([key, value]) => workerUrl.searchParams.set(key, value));
+  const serviceWorkerRegistration = await navigator.serviceWorker.register(workerUrl, { scope: '/' });
+  return { serviceWorkerRegistration, messaging: getMessaging(app), user: auth.currentUser };
+}
+
+async function pushTokenId(token) {
+  const bytes = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export async function registerPushDevice() {
+  const { serviceWorkerRegistration, messaging, user } = await getMessagingWorker();
+  const token = await getToken(messaging, {
+    vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+    serviceWorkerRegistration,
+  });
+  if (!token) throw new Error('Firebase tidak menghasilkan token push untuk perangkat ini.');
+  const tokenId = await pushTokenId(token);
+  await setDoc(doc(db, 'users', user.uid, 'pushTokens', tokenId), {
+    token,
+    createdAt: serverTimestamp(),
+  });
+  localStorage.setItem(pushTokenIdKey(user.uid), tokenId);
+}
+
+export async function unregisterPushDevice() {
+  const user = auth?.currentUser;
+  if (!user || !db || !app) throw new Error('Akun Firebase tidak tersedia untuk menghapus token push.');
+  const tokenId = localStorage.getItem(pushTokenIdKey(user.uid));
+  if (tokenId) {
+    await deleteDoc(doc(db, 'users', user.uid, 'pushTokens', tokenId));
+    localStorage.removeItem(pushTokenIdKey(user.uid));
+  }
+  if (await isSupported()) await deleteToken(getMessaging(app));
+}
+
+export async function syncNotificationPrefs(prefs) {
+  const user = auth?.currentUser;
+  if (!user || !db) return;
+  await setDoc(doc(db, 'users', user.uid), {
+    notificationPrefs: prefs,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function listenForPushMessages(callback) {
+  if (!app || !(await isSupported())) return () => {};
+  return onMessage(getMessaging(app), callback);
+}
 
 export function observeAuth(callback, onError) {
   if (!auth) return () => {};
@@ -184,6 +253,36 @@ export async function signInWithEmail(role, email, password) {
     throw new Error(`Peran akun tidak dapat diperbarui. Pastikan Firestore rules sudah dipasang. ${error.message}`);
   }
   return profileFromSnapshots(credential.user, privateSnap, publicSnap, role, roles);
+}
+
+export async function changeAccountPassword(currentPassword, newPassword) {
+  const user = auth?.currentUser;
+  if (!user?.email || !user.providerData.some(({ providerId }) => providerId === 'password')) {
+    throw new Error('Akun ini tidak memiliki login email dan kata sandi.');
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
+}
+
+export async function setAccountPassword(newPassword, currentPassword = '') {
+  const user = auth?.currentUser;
+  if (!user?.email) throw new Error('Email akun tidak ditemukan.');
+  if (user.providerData.some(({ providerId }) => providerId === 'password')) {
+    await changeAccountPassword(currentPassword, newPassword);
+    return;
+  }
+  if (!user.providerData.some(({ providerId }) => providerId === 'google.com')) {
+    throw new Error('Metode login akun ini belum mendukung pengaturan kata sandi.');
+  }
+  await reauthenticateWithPopup(user, new GoogleAuthProvider());
+  await linkWithCredential(user, EmailAuthProvider.credential(user.email, newPassword));
+}
+
+export async function requestPasswordReset(email) {
+  if (!auth) throw new Error('Layanan pemulihan kata sandi belum tersedia.');
+  if (!email?.trim()) throw new Error('Alamat email akun belum tersedia.');
+  await sendPasswordResetEmail(auth, email.trim());
 }
 
 export async function registerWithEmail({ role, name, email, phone, extra, password }) {

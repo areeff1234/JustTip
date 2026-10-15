@@ -143,7 +143,8 @@ export default function OrderDetail({ o, back, cancel, say, onChat, onReview }) 
   const subtotal = o.subtotal || (o.price * (o.qty || 1)) || 0;
   const jasa = o.jasa || o.jastipFee || 15000;
   const platformFee = o.platformFee != null ? o.platformFee : Math.min(5000, Math.round(subtotal * 0.025));
-  const totalTagihan = o.total || (subtotal + jasa + platformFee);
+  const insuranceFee = o.insurance ? (o.insuranceFee ?? 2000) : 0;
+  const totalTagihan = o.total || (subtotal + jasa + platformFee + insuranceFee);
 
   // Status banner context berurutan
   const getBannerConfig = () => {
@@ -424,6 +425,7 @@ export default function OrderDetail({ o, back, cancel, say, onChat, onReview }) 
           <Row k="Jasa Titip Mitra" v={rp(jasa)} />
           <Row k="Ongkos Kirim" v="Gratis (COD Kampus)" green />
           <Row k="Biaya Layanan JustTip (2,5%)" v={rp(platformFee)} />
+          {o.insurance && <Row k="Asuransi & Garansi Makanan" v={rp(insuranceFee)} green />}
 
           <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: 8, marginTop: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

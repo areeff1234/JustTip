@@ -13,13 +13,18 @@ import RegisterForm from './components/auth/RegisterForm.jsx';
 import VerifyEmail from './components/auth/VerifyEmail.jsx';
 import Success from './components/auth/Success.jsx';
 import { ADDRS } from './components/checkout/checkout.js';
-import { ADDR0, initPrefs } from './components/account/accountData.js';
+import { ADDR0, initPrefs, loadNotificationPrefs, saveNotificationPrefs } from './components/account/accountData.js';
+import { useJustip } from './context/JustipContext.jsx';
+import useAppNotifications from './hooks/useAppNotifications.js';
 import {
   auth as firebaseAuth,
   firebaseConfigured,
   getSignedInProfile,
+  listenForPushMessages,
   logoutFromFirebase,
   observeAuth,
+  registerPushDevice,
+  syncNotificationPrefs,
   registerWithEmail,
   resendVerificationEmail,
   setActiveRole,
@@ -42,11 +47,76 @@ export default function App() {
   const [authPending, setAuthPending] = useState(firebaseConfigured);
   const [authError, setAuthError] = useState('');
   const [verificationUser, setVerificationUser] = useState(null);
+  const [notificationSyncError, setNotificationSyncError] = useState('');
+  const [pushRegistrationError, setPushRegistrationError] = useState('');
   const authAttemptRole = useRef(null);
   const sessionRef = useRef(null);
+  const { orders, txs, products, mitras, withdrawals } = useJustip();
   const chat = useChat(session);
   const [net, setNet] = useState(() => navigator.onLine);
   const [fakeOff, setFakeOff] = useState(false);
+  useAppNotifications({
+    session,
+    prefs: session ? prefs[session.role] : null,
+    orders,
+    conversations: chat.convs,
+    transactions: txs,
+    products,
+    mitras,
+    withdrawals,
+    isRealtime: chat.isRealtime,
+  });
+  useEffect(() => {
+    if (!session) return;
+    saveNotificationPrefs(session, prefs);
+    if (!session.uid) return;
+    syncNotificationPrefs(prefs).then(() => {
+      setNotificationSyncError('');
+    }).catch((error) => {
+      console.error('Gagal menyinkronkan preferensi notifikasi:', error);
+      setNotificationSyncError('Preferensi notifikasi tersimpan di browser, tetapi gagal disinkronkan ke Firebase.');
+    });
+  }, [session, prefs]);
+  const pushEnabled = Boolean(session?.uid && prefs[session.role]?.push);
+  useEffect(() => {
+    if (!pushEnabled) {
+      setPushRegistrationError('');
+      return undefined;
+    }
+    let active = true;
+    registerPushDevice().then(() => {
+      if (active) setPushRegistrationError('');
+    }).catch((error) => {
+      console.error('Gagal mendaftarkan perangkat untuk push:', error);
+      if (active) setPushRegistrationError(`Push belum tersambung: ${error.message}`);
+    });
+    return () => { active = false; };
+  }, [pushEnabled, session?.uid]);
+  useEffect(() => {
+    if (!pushEnabled) return undefined;
+    let active = true;
+    let unsubscribe = () => {};
+    listenForPushMessages((payload) => {
+      const title = payload.data?.title || 'Notifikasi Justip';
+      const body = payload.data?.body || 'Ada pembaruan baru di Justip.';
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(title, { body });
+        } catch (error) {
+          console.error('Gagal menampilkan push saat aplikasi terbuka:', error);
+        }
+      }
+    }).then((stop) => {
+      if (active) unsubscribe = stop;
+      else stop();
+    }).catch((error) => {
+      console.error('Gagal memasang listener push:', error);
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [pushEnabled]);
   useEffect(() => {
     const on = () => setNet(true), off = () => setNet(false);
     window.addEventListener('online', on); window.addEventListener('offline', off);
@@ -95,6 +165,7 @@ export default function App() {
             extra: '',
             photo: signedInProfile.photoURL || null,
           });
+          setPrefs(loadNotificationPrefs(signedInProfile));
           sessionRef.current = signedInProfile;
           setSession(signedInProfile);
           setAuthError('');
@@ -135,12 +206,14 @@ export default function App() {
 
   const onPinSuccess = () => {
     window.location.hash = '#admin';
-    setSession({
+    const adminSession = {
       role: 'admin',
       name: 'Admin Bitforce (TI-A)',
       email: 'admin@bitforce.it',
       phone: '081234567890',
-    });
+    };
+    setPrefs(loadNotificationPrefs(adminSession));
+    setSession(adminSession);
     setPinOpen(false);
   };
 
@@ -169,6 +242,7 @@ export default function App() {
     sessionRef.current = u; // tandai sesi aktif sebelum setSession agar observer tidak override
     if (u.uid && u.role) setActiveRole(u.uid, u.role);
     setProfile({ name: u.name ?? '', email: u.email ?? '', phone: u.phone ?? '', extra: u.extra ?? '', photo: u.photoURL ?? null });
+    setPrefs(loadNotificationPrefs(u));
     setSession(u);
     setAuthError('');
   };
@@ -244,6 +318,7 @@ export default function App() {
     setAddrs: upd(setAddrs),
     prefs: prefs[r],
     setPrefs: upd(setPrefs),
+    notificationError: notificationSyncError || pushRegistrationError,
     verif: verif[r],
     setVerif: upd(setVerif),
     roles: session.roles || [r],

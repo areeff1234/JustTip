@@ -5,11 +5,20 @@ import { COLOR } from './checkout.js';
 import { CoHeader, Row } from './parts.jsx';
 import { useJustip } from '../../context/JustipContext.jsx';
 
-export default function CartPage({ co, go, back, addMore }) {
+export default function CartPage({ co, products, go, back, addMore, say }) {
   const { meetingPoints } = useJustip();
 
   const currentMp =
     meetingPoints.find((m) => m.id === co.selectedMpId) || meetingPoints[0];
+  const cartItems = co.cart.map((item) => ({
+    ...item,
+    currentProduct: products.find((product) => product.id === item.p.id),
+    p: products.find((product) => product.id === item.p.id) || item.p,
+  }));
+  const stockIssues = cartItems.filter(({ p, qty, currentProduct }) =>
+    !currentProduct || currentProduct.active === false || qty > co.stockLimit(p)
+  );
+  const hasStockIssue = stockIssues.length > 0;
 
   return (
     <>
@@ -24,7 +33,7 @@ export default function CartPage({ co, go, back, addMore }) {
         {/* 1. BARANG YANG DITITIP */}
         <div className="sec"><h3>Barang Titipan</h3></div>
         {co.stores.map((st) => {
-          const items = co.cart.filter((i) => (i.p.store || i.p.justipper) === st);
+          const items = cartItems.filter((i) => (i.p.store || i.p.justipper) === st);
           return (
             <section className="costore" key={st}>
               <header>
@@ -37,24 +46,39 @@ export default function CartPage({ co, go, back, addMore }) {
                   <Ic n="trash" size={16} />
                 </button>
               </header>
-              {items.map(({ p, qty, size }) => (
+              {items.map(({ p, qty, size, currentProduct }) => {
+                const stock = co.stockLimit(p);
+                const unavailable = !currentProduct || currentProduct.active === false;
+                const exceedsStock = qty > stock || unavailable;
+                return (
                 <div className="coitem" key={p.id}>
                   <span className="ci-img">{ART[p.art]}</span>
                   <div className="ci-info">
                     <h4>{title(p)}</h4>
                     {size && <small>Ukuran: {size}</small>}
                     {COLOR[p.id] && <small>Warna: {COLOR[p.id]}</small>}
+                    <small className={stock > 0 && !unavailable ? '' : 'stock-error'}>
+                      {unavailable ? 'Produk tidak lagi tersedia' : `Stok tersedia: ${stock} slot`}
+                    </small>
                     <div className="ci-row">
                       <b>{rp(p.price)}</b>
                       <span className="stepq">
-                        <button onClick={() => (qty > 1 ? co.qty(p.id, -1) : co.remove(p.id))} aria-label="Kurangi">−</button>
+                        <button onClick={() => (qty > 1 ? co.qty(p.id, -1, stock) : co.remove(p.id))} aria-label="Kurangi">−</button>
                         <i aria-live="polite">{qty}</i>
-                        <button onClick={() => co.qty(p.id, 1)} aria-label="Tambah">+</button>
+                        <button onClick={() => {
+                          if (unavailable) return say('Produk ini sudah tidak tersedia. Hapus dari keranjang.');
+                          if (!co.qty(p.id, 1, stock)) say(`Maksimal ${stock} slot tersedia untuk ${p.name}.`);
+                        }} aria-label="Tambah">+</button>
                       </span>
                     </div>
+                    {exceedsStock && (
+                      <small className="stock-error" role="alert">
+                        {unavailable ? 'Produk sudah tidak tersedia. Hapus barang ini dari keranjang.' : `Jumlah melebihi stok. Kurangi menjadi maksimal ${stock} slot atau hapus barang.`}
+                      </small>
+                    )}
                   </div>
                 </div>
-              ))}
+              );})}
             </section>
           );
         })}
@@ -167,8 +191,11 @@ export default function CartPage({ co, go, back, addMore }) {
         </div>
         <button
           className="btn"
-          disabled={!co.cart.length}
-          onClick={() => go('bayar')}
+          disabled={!co.cart.length || hasStockIssue}
+          onClick={() => {
+            if (hasStockIssue) return say('Jumlah pesanan melebihi stok tersedia. Periksa kembali keranjangmu.');
+            go('bayar');
+          }}
           style={{ padding: '12px 24px', fontSize: 13, fontWeight: 800 }}
         >
           Lanjut ke Pembayaran

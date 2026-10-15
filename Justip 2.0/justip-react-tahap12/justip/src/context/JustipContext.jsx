@@ -329,8 +329,19 @@ export function JustipProvider({ children }) {
     notes = '',
     isPaid = false,
   }) => {
-    const firstItem = cart[0]?.p || BASE_PRODUCTS[0];
-    const firstQty = cart[0]?.qty || 1;
+    const validatedCart = cart.map((item) => {
+      const product = products.find((p) => p.id === item.p.id);
+      if (!product || product.active === false) {
+        throw new Error(`${item.p.name} sudah tidak tersedia.`);
+      }
+      const stock = Number(product.stock ?? 99);
+      if (!Number.isFinite(stock) || stock <= 0 || item.qty > stock) {
+        throw new Error(`Stok ${product.name} tersisa ${Math.max(0, stock)} slot, jumlah pesanan melebihi stok.`);
+      }
+      return { ...item, p: product };
+    });
+    const firstItem = validatedCart[0]?.p || BASE_PRODUCTS[0];
+    const firstQty = validatedCart[0]?.qty || 1;
     const justipper = firstItem.justipper || 'Hafiz Anggara';
     const store = firstItem.store || `${justipper} (TI-A)`;
 
@@ -349,7 +360,7 @@ export function JustipProvider({ children }) {
       dest: destText,
       meetingPoint: meetingPoint || meetingPoints[0],
       justipper,
-      items: cart,
+      items: validatedCart,
       name: firstItem.name,
       art: firstItem.art || 'box',
       price: firstItem.price,
@@ -379,6 +390,7 @@ export function JustipProvider({ children }) {
       store,
       storeAddr: firstItem.tokoAsal || 'Foot Locker Malioboro, Yogyakarta',
       notes,
+      stockReserved: true,
     };
 
     // Skenario 1 (QRIS Toko Pribadi): Pembayaran QRIS 100% langsung masuk ke e-wallet/rekening jastiper
@@ -399,6 +411,14 @@ export function JustipProvider({ children }) {
       ]);
     }
 
+    setProducts((list) =>
+      list.map((product) => {
+        const reserved = validatedCart.find((item) => item.p.id === product.id);
+        return reserved
+          ? { ...product, stock: Math.max(0, Number(product.stock ?? 99) - reserved.qty) }
+          : product;
+      })
+    );
     setOrders((list) => [newOrder, ...list]);
     return newOrder;
   };
@@ -410,6 +430,7 @@ export function JustipProvider({ children }) {
     kota = 'Luar Kota',
     price = 50000,
     fee = 15000,
+    insurance = false,
     meetingPoint = null,
     notes = '',
     payMethod = 'Bayar Tunai saat Ketemuan (COD)',
@@ -419,7 +440,8 @@ export function JustipProvider({ children }) {
     const subtotal = Number(price) || 50000;
     const jastipFee = Number(fee) || 15000;
     const platformFee = Math.min(5000, Math.round(subtotal * 0.025));
-    const total = subtotal + jastipFee + platformFee;
+    const insuranceFee = insurance ? 2000 : 0;
+    const total = subtotal + jastipFee + platformFee + insuranceFee;
     const destText = meetingPoint ? `${meetingPoint.name} (${meetingPoint.desc})` : 'Gedung TI Kampus Unsoed, Purwokerto';
 
     const newReq = {
@@ -440,6 +462,8 @@ export function JustipProvider({ children }) {
       subtotal,
       jastipFee,
       platformFee,
+      insurance,
+      insuranceFee,
       pgFee: 0,
       net: platformFee,
       ship: 0,
@@ -578,6 +602,17 @@ export function JustipProvider({ children }) {
   };
 
   const cancelOrder = (no, reason, by = 'Kamu') => {
+    const target = orders.find((o) => o.no === no);
+    if (target?.stockReserved && !['batal', 'selesai'].includes(target.status)) {
+      setProducts((list) =>
+        list.map((product) => {
+          const reserved = target.items?.find((item) => item.p.id === product.id);
+          return reserved
+            ? { ...product, stock: Number(product.stock ?? 0) + reserved.qty }
+            : product;
+        })
+      );
+    }
     setOrders((list) =>
       list.map((o) =>
         o.no === no

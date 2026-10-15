@@ -7,7 +7,7 @@ import JustipperHome from './JustipperHome.jsx';
 import { OrdersPage, MapPage } from './JustipperPages.jsx';
 import ChatList from '../chat/ChatList.jsx';
 import ChatRoom from '../chat/ChatRoom.jsx';
-import { TitipanPage, TitipanForm } from './JustipperProducts.jsx';
+import { TitipanPage, TitipanDetail, TitipanForm } from './JustipperProducts.jsx';
 import JustipperOrderDetail from './JustipperOrderDetail.jsx';
 import ManageMeetingPoints from './ManageMeetingPoints.jsx';
 import ManageQris from './ManageQris.jsx';
@@ -43,6 +43,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
   const [tab, setTab] = useState('Beranda');
   const [online, setOnline] = useState(true);
   const [detailOrder, setDetailOrder] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [ordStart, setOrdStart] = useState('masuk');
   const [toast, say] = useToast();
   const [form, setForm] = useState(null);
@@ -101,6 +102,8 @@ export default function JustipperApp({ session, logout, acc, chat }) {
   };
 
   const currentDetail = detailOrder ? orders.find((x) => x.id === detailOrder.id) || detailOrder : null;
+  const myProducts = products.filter((p) => p.justipper === 'Hafiz Anggara' || p.store?.includes('Hafiz Anggara'));
+  const currentProduct = selectedProduct ? myProducts.find((p) => p.id === selectedProduct.id) : null;
 
   if (subView === 'mp') {
     return (
@@ -151,14 +154,28 @@ export default function JustipperApp({ session, logout, acc, chat }) {
     return (
       <div className="app">
         <div className="page">
-          <TitipanForm item={form.id ? form : null} back={() => setForm(null)} onSave={saveProduct} />
+          <TitipanForm edit={form.id ? form : null} back={() => setForm(null)} onSave={saveProduct} />
           {toast}
         </div>
       </div>
     );
   }
 
-  const myProducts = products.filter((p) => p.justipper === 'Hafiz Anggara' || p.store?.includes('Hafiz Anggara'));
+  if (currentProduct) {
+    return (
+      <div className="app">
+        <div className="page">
+          <TitipanDetail
+            item={currentProduct}
+            back={() => setSelectedProduct(null)}
+            onEdit={setForm}
+          />
+          {toast}
+        </div>
+      </div>
+    );
+  }
+
   const doneOrders = orders.filter((o) => st(o) === 'done');
 
   return (
@@ -178,7 +195,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
             say={say}
             products={myProducts}
             onAddProduct={() => setForm({})}
-            onEditProduct={(p) => setForm(p)}
+            onDetailProduct={setSelectedProduct}
             onManageMp={() => setSubView('mp')}
             onManageQris={() => setSubView('qris')}
           />
@@ -187,6 +204,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
           <TitipanPage
             products={myProducts}
             onAdd={() => setForm({})}
+            onDetail={setSelectedProduct}
             onEdit={(p) => setForm(p)}
             onToggle={(id) => { toggleProduct(id); say('Status produk diubah'); }}
             onDelete={(id) => { deleteProduct(id); say('Produk dihapus'); }}
@@ -231,7 +249,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
         )}
         {toast}
       </div>
-      {!deep && tab !== 'room' && <BottomNav items={NAV(chat.unread('justipper'))} active={tab} onChange={setTab} />}
+      {!deep && tab !== 'room' && <BottomNav items={NAV(acc.prefs?.t?.chat ? chat.unread('justipper') : '')} active={tab} onChange={setTab} />}
     </div>
   );
 }
