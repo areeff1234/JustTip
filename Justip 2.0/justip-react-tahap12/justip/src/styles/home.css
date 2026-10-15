@@ -16,6 +16,9 @@ s { font-size: 11px; color: var(--muted); }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand .logo { width: 40px; height: 38px; background: var(--sky); border-radius: 12px; padding: 5px; }
 .brand b { font-size: 28px; font-weight: 800; letter-spacing: -.035em; color: var(--navy); } .brand b i { font-style: normal; color: var(--sky); }
+.brand-home .home-brand-roll { display: inline-block; transform-origin: 50% 65%; animation: homeBrandRoll 3.6s ease-in-out 1s infinite; }
+@keyframes homeBrandRoll { 0%, 72%, 100% { transform: translateX(0) rotate(0); } 82% { transform: translateX(8px) rotate(180deg); } 92% { transform: translateX(0) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .brand-home .home-brand-roll { animation: none; } }
 .avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--sky-soft); }
 .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: var(--navy); }
 .icon-btn.hot { color: #f0455a; }

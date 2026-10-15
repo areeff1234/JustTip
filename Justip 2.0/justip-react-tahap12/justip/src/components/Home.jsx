@@ -15,7 +15,7 @@ export default function Home({ go, onRequestCustom }) {
   return (
     <main className="scroll pad">
       <header className="top">
-        <div className="brand"><Logo bg="#38BDF8" fg="#fff" /><b>just<i>ip</i></b></div>
+        <div className="brand brand-home"><Logo bg="#38BDF8" fg="#fff" className="home-brand-logo" /><b className="home-brand-name">just<i className="home-brand-roll">i</i>p</b></div>
         <div className="top-r"><button className="icon-btn" aria-label="Notifikasi"><Ic n="bell" /></button><Avatar /></div>
       </header>
       <button className="search as-btn" onClick={() => go('list')}><Ic n="search" size={20} /><span>Cari barang, toko, atau link...</span></button>
