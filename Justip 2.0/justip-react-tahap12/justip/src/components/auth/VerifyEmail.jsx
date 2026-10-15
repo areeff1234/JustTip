@@ -2,7 +2,59 @@ import { useEffect, useRef, useState } from 'react';
 import { BackBtn } from './AuthUI.jsx';
 
 const DEMO = '123456';
-export default function VerifyEmail({ email, back, onOk }) {
+
+function FirebaseVerifyEmail({ email, user, back, onVerify, onResend, onOk, initialError }) {
+  const [error, setError] = useState(initialError || '');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (initialError) setError(initialError);
+  }, [initialError]);
+
+  const verify = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const profile = await onVerify(user);
+      onOk(profile);
+    } catch (verifyError) {
+      setError(verifyError.message || 'Verifikasi belum berhasil. Coba lagi.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await onResend(user);
+      setError('Tautan verifikasi baru sudah dikirim. Periksa kotak masuk atau folder spam.');
+    } catch (resendError) {
+      setError(resendError.message || 'Tautan verifikasi gagal dikirim.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="auth">
+      <BackBtn onClick={back} />
+      <div className="mail-art">
+        <svg viewBox="0 0 120 100" aria-hidden="true"><circle cx="56" cy="50" r="44" fill="#e3f3fd" /><rect x="22" y="30" width="68" height="46" rx="8" fill="#2fa9f0" /><path d="M24 36l32 22 32-22" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" /><circle cx="92" cy="72" r="14" fill="#fff" /><circle cx="92" cy="72" r="11" fill="#38bdf8" /><path d="M86 72l4 4 8-8" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" /></svg>
+      </div>
+      <h1 className="h2 c">Verifikasi Email</h1>
+      <p className="lead c">Kami mengirim tautan verifikasi ke<br /><b className="em">{email}</b></p>
+      <p className="lead c">Buka tautan dari email tersebut, lalu kembali ke halaman ini dan tekan tombol di bawah.</p>
+      {error && <small className="ferr c" role="status">{error}</small>}
+      <button className="btn wide" type="button" onClick={verify} disabled={busy}>{busy ? 'Memeriksa...' : 'Saya sudah verifikasi email'}</button>
+      <button className="lnk resend" type="button" onClick={resend} disabled={busy}>Kirim ulang tautan verifikasi</button>
+      <p className="demo">Tidak menerima email? Periksa folder spam atau promosi.</p>
+    </div>
+  );
+}
+
+export default function VerifyEmail({ email, back, onOk, user, onVerify, onResend, initialError }) {
   const [d, setD] = useState(Array(6).fill(''));
   const [err, setErr] = useState('');
   const [sec, setSec] = useState(59);
@@ -10,6 +62,20 @@ export default function VerifyEmail({ email, back, onOk }) {
 
   useEffect(() => { refs.current[0]?.focus(); }, []);
   useEffect(() => { if (sec <= 0) return; const t = setTimeout(() => setSec(sec - 1), 1000); return () => clearTimeout(t); }, [sec]);
+
+  if (onVerify) {
+    return (
+      <FirebaseVerifyEmail
+        email={email}
+        user={user}
+        back={back}
+        onVerify={onVerify}
+        onResend={onResend}
+        initialError={initialError}
+        onOk={onOk}
+      />
+    );
+  }
 
   const put = (i, v) => {
     const c = v.replace(/\D/g, '');

@@ -55,6 +55,14 @@ export default function Account({ role, acc, logout, stats, say, onDeep }) {
           <Row icon="user" title="Edit Profil" sub="Nama, email, dan nomor telepon" onClick={() => setSub('edit')} />
           {cfg.verif && <Row icon="shield" title={cfg.verif.title} sub={VSTAT[acc.verif.s]} onClick={() => setSub('verif')} />}
           <Row icon="lock" title="Ubah Kata Sandi" sub="Perbarui keamanan akunmu" onClick={() => setSub('pass')} />
+          {acc.roles?.includes(role === 'pemesan' ? 'justipper' : 'pemesan') && (
+            <Row
+              icon="user"
+              title={`Beralih ke ${role === 'pemesan' ? 'Justipper' : 'Pemesan'}`}
+              sub="Pindah peran tanpa keluar dari akun"
+              onClick={() => acc.switchRole(role === 'pemesan' ? 'justipper' : 'pemesan')}
+            />
+          )}
           {cfg.addrTitle && (
             <Row icon="pin" title={cfg.addrTitle} sub={`${acc.addrs?.length || 0} ${cfg.addrSub}`} onClick={() => setSub('addr')} />
           )}

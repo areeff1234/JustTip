@@ -22,6 +22,7 @@
 .ch-quick::-webkit-scrollbar { display: none; }
 .ch-quick button { flex: none; padding: 7px 12px; border-radius: 16px; border: 1.5px solid #cfe6f7; color: #1385c9; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .ch-comp { display: flex; align-items: center; gap: 8px; padding: 8px 14px 18px; background: #fff; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.ch-error { margin: 0; padding: 7px 14px; color: #b42318; background: #fff1f0; font-size: 12px; }
 .ch-comp > input { flex: 1; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: 22px; font: inherit; font-size: 13px; color: var(--navy); outline: none; } .ch-comp > input:focus { border-color: var(--sky); }
 .ch-att, .ch-send { position: relative; width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 50%; } .ch-att { color: var(--sky); background: var(--sky-soft); cursor: pointer; } .ch-att input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 .ch-send { background: var(--sky); color: #fff; } .ch-send:disabled { opacity: .45; }

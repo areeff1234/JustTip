@@ -1,31 +1,73 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Field, BackBtn, Wordmark } from './AuthUI.jsx';
 import { isEmail, isPhone, roleName } from './roles.js';
 import { DUMMY_USERS } from '../../context/JustipContext.jsx';
+import { firebaseConfigured } from '../../firebase.js';
 
-const Apple = () => <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M16.400 12.600c0-2.300 1.900-3.400 2-3.500-1.100-1.600-2.800-1.800-3.400-1.800-1.400-.1-2.800.9-3.500.9s-1.800-.8-3-.8c-1.500 0-3 .9-3.800 2.300-1.600 2.800-.4 7 1.200 9.300.8 1.100 1.700 2.400 2.900 2.300 1.200 0 1.600-.7 3-.7s1.800.7 3 .7 2-1.100 2.800-2.200c.9-1.300 1.200-2.500 1.300-2.600-.1 0-2.500-1-2.500-3.900zM14.100 5.700c.6-.8 1.100-1.900.9-3-.9 0-2.100.6-2.700 1.400-.6.7-1.100 1.800-1 2.900 1 .1 2.100-.5 2.800-1.300z" /></svg>;
-
-export default function Login({ role, back, goRegister, onLogin, onSecretAdmin }) {
+export default function Login({ role, back, goRegister, onLogin, onGoogleLogin, onEmailLogin, onSecretAdmin, initialError }) {
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [remember, setRemember] = useState(true);
   const [err, setErr] = useState({});
+  const [googleError, setGoogleError] = useState(initialError || '');
+  const [loginError, setLoginError] = useState('');
   const [busy, setBusy] = useState(false);
   const [taps, setTaps] = useState(0);
 
-  const submit = (e) => {
+  useEffect(() => {
+    if (initialError) setGoogleError(initialError);
+  }, [initialError]);
+
+  const submit = async (e) => {
     e.preventDefault();
     const er = {};
-    if (!id.trim()) er.id = 'Email atau nomor telepon wajib diisi.';
-    else if (!isEmail(id.trim()) && !isPhone(id)) er.id = 'Masukkan email atau nomor telepon yang valid.';
+    if (!id.trim()) er.id = 'Email wajib diisi.';
+    else if (firebaseConfigured ? !isEmail(id.trim()) : (!isEmail(id.trim()) && !isPhone(id))) {
+      er.id = firebaseConfigured ? 'Masukkan alamat email yang valid.' : 'Masukkan email atau nomor telepon yang valid.';
+    }
     if (!pw) er.pw = 'Password wajib diisi.';
     else if (pw.length < 6) er.pw = 'Password minimal 6 karakter.';
     setErr(er);
     if (Object.keys(er).length) return;
+    if (firebaseConfigured) {
+      setBusy(true);
+      setLoginError('');
+      try {
+        onLogin(await onEmailLogin(role, id.trim(), pw));
+      } catch (error) {
+        const messages = {
+          'auth/invalid-credential': 'Email atau password tidak cocok.',
+          'auth/invalid-email': 'Format email tidak valid.',
+          'auth/too-many-requests': 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.',
+          'auth/operation-not-allowed': 'Login email belum diaktifkan di Firebase Authentication.',
+          'auth/email-not-verified': 'Email belum diverifikasi. Periksa email—halaman verifikasi akan dibuka otomatis.',
+        };
+        setLoginError(messages[error.code] || messages[error.message] || error.message || 'Login gagal. Silakan coba lagi.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     setBusy(true);
     setTimeout(() => onLogin({ role, name: id.includes('@') ? id.split('@')[0] : id, email: isEmail(id.trim()) ? id.trim() : '', phone: isEmail(id.trim()) ? '' : id.trim() }), 700);
   };
-  const social = (n) => { setBusy(true); setTimeout(() => onLogin({ role, name: n }), 700); };
+  const google = async () => {
+    setBusy(true);
+    setGoogleError('');
+    try {
+      const user = await onGoogleLogin(role);
+      onLogin(user);
+    } catch (error) {
+      const messages = {
+        'auth/unauthorized-domain': 'Domain aplikasi belum diizinkan di Firebase Authentication.',
+        'auth/popup-blocked': 'Popup login diblokir browser. Izinkan popup lalu coba lagi.',
+        'auth/popup-closed-by-user': 'Jendela login ditutup sebelum selesai.',
+      };
+      setGoogleError(messages[error.code] || error.message || 'Login Google gagal. Silakan coba lagi.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleDevTap = () => {
     const next = taps + 1;
@@ -36,15 +78,14 @@ export default function Login({ role, back, goRegister, onLogin, onSecretAdmin }
     }
   };
 
-  const dummy = DUMMY_USERS[role] || DUMMY_USERS.pemesan;
-
   return (
     <form className="auth" onSubmit={submit} noValidate>
       <BackBtn onClick={back} />
       <Wordmark />
-      <h1 className="h2">Selamat datang kembali!</h1>
-      <p className="lead c">Masuk sebagai {roleName(role)} untuk melanjutkan perjalanan Anda.</p>
-      
+      <h1 className="h2 login-title">Selamat datang kembali!</h1>
+      <p className="lead c">Masuk sebagai {roleName(role)}. Email yang sama bisa digunakan untuk Pemesan dan Justipper.</p>
+
+      {!firebaseConfigured && <>
       {/* 1-Click Login Dummy Account */}
       {role === 'pemesan' && (
         <div style={{ marginBottom: 14, padding: '10px 12px', background: '#f0f9ff', border: '1px dashed #38bdf8', borderRadius: 12 }}>
@@ -112,7 +153,7 @@ export default function Login({ role, back, goRegister, onLogin, onSecretAdmin }
         </div>
       )}
 
-      <Field icon="mail" placeholder="Email atau nomor telepon" value={id} onChange={setId} error={err.id} autoComplete="username" />
+      <Field icon="mail" placeholder={firebaseConfigured ? 'Email' : 'Email atau nomor telepon'} value={id} onChange={setId} error={err.id} autoComplete={firebaseConfigured ? 'email' : 'username'} />
       <Field icon="lock" type="password" placeholder="Password" value={pw} onChange={setPw} error={err.pw} autoComplete="current-password" />
       <div className="rowx">
         <label className="chk"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span /> Ingat saya</label>
@@ -120,8 +161,17 @@ export default function Login({ role, back, goRegister, onLogin, onSecretAdmin }
       </div>
       <button className="btn wide" disabled={busy}>{busy ? 'Memproses...' : 'Masuk'}</button>
       <div className="or"><span>atau</span></div>
-      <button type="button" className="btn out" onClick={() => social('Pengguna Google')} disabled={busy}><i className="g-ic">G</i> Lanjut dengan Google</button>
-      <button type="button" className="btn out" onClick={() => social('Pengguna Apple')} disabled={busy}><Apple /> Lanjut dengan Apple</button>
+      </>}
+      {firebaseConfigured && <>
+        <Field icon="mail" type="email" placeholder="Email" value={id} onChange={setId} error={err.id} autoComplete="email" />
+        <Field icon="lock" type="password" placeholder="Password" value={pw} onChange={setPw} error={err.pw} autoComplete="current-password" />
+        <button className="btn wide" disabled={busy}>{busy ? 'Memproses...' : 'Masuk dengan Email'}</button>
+        <div className="or"><span>atau masuk dengan</span></div>
+      </>}
+      <button type="button" className="btn out" onClick={google} disabled={busy || !firebaseConfigured}><i className="g-ic">G</i> Lanjut dengan Google</button>
+      {loginError && <p className="ferr c" role="alert">{loginError}</p>}
+      {googleError && <p className="ferr c" role="alert">{googleError}</p>}
+      {!firebaseConfigured && <p className="foot">Login Google akan aktif setelah konfigurasi Firebase dipasang.</p>}
       <p className="foot">Belum punya akun? <button type="button" className="lnk" onClick={goRegister}>Daftar</button></p>
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button

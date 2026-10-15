@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Field, BackBtn } from './AuthUI.jsx';
 import { isEmail, isPhone, roleName } from './roles.js';
+import { firebaseConfigured } from '../../firebase.js';
 
 const EXTRA = {
   justipper: ['pin', 'Kota domisili / rute jastip'],
   admin: ['shield', 'NIM / Kode Akses Tim Bitforce'],
 };
 
-export default function RegisterForm({ role, back, onDone }) {
+export default function RegisterForm({ role, back, onDone, onRegister }) {
   const [f, setF] = useState({ nama: '', email: '', tel: '', extra: '', pw: '', pw2: '' });
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,41 @@ export default function RegisterForm({ role, back, onDone }) {
     setErr(er);
     if (Object.keys(er).length) return;
     setBusy(true);
-    setTimeout(() => onDone({ name: f.nama.trim(), email: f.email.trim(), tel: f.tel.trim(), extra: f.extra.trim() }), 600);
+    const values = {
+      name: f.nama.trim(),
+      email: f.email.trim(),
+      tel: f.tel.trim(),
+      extra: f.extra.trim(),
+    };
+    if (!firebaseConfigured) {
+      setTimeout(() => {
+        onDone(values);
+        setBusy(false);
+      }, 600);
+      return;
+    }
+
+    onRegister({
+      role,
+      name: values.name,
+      email: values.email,
+      phone: values.tel,
+      extra: values.extra,
+      password: f.pw,
+    }).then((result) => {
+      onDone({ ...values, user: result.user, profile: result.profile, verificationError: result.verificationError });
+    }).catch((error) => {
+      const messages = {
+        'auth/email-already-in-use': 'Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.',
+        'auth/invalid-email': 'Format email tidak valid.',
+        'auth/weak-password': 'Password terlalu lemah. Gunakan minimal 8 karakter.',
+        'auth/operation-not-allowed': 'Pendaftaran email belum aktif. Aktifkan Email/Password di Firebase Authentication.',
+      };
+      setErr((current) => ({
+        ...current,
+        form: messages[error.code] || error.message || 'Pendaftaran gagal. Silakan coba lagi.',
+      }));
+    }).finally(() => setBusy(false));
   };
 
   return (
@@ -40,6 +75,7 @@ export default function RegisterForm({ role, back, onDone }) {
       {extra && <Field icon={extra[0]} placeholder={extra[1]} value={f.extra} onChange={set('extra')} error={err.extra} />}
       <Field icon="lock" type="password" placeholder="Password" value={f.pw} onChange={set('pw')} error={err.pw} autoComplete="new-password" />
       <Field icon="lock" type="password" placeholder="Konfirmasi Password" value={f.pw2} onChange={set('pw2')} error={err.pw2} autoComplete="new-password" />
+      {err.form && <small className="ferr c" role="alert">{err.form}</small>}
       <button className="btn wide" disabled={busy}>{busy ? 'Memproses...' : 'Daftar'}</button>
       <p className="terms">Dengan mendaftar, Anda menyetujui<br /><button type="button" className="lnk">Syarat & Ketentuan</button> dan <button type="button" className="lnk">Kebijakan Privasi</button> Justip.</p>
     </form>

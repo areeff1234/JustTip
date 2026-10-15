@@ -22,7 +22,7 @@ Halaman: `Home`, `Kategori`, `ProductList`, `Detail` di `src/components`. Data s
 ## Tahap 3: Onboarding, Login, Daftar (3 peran)
 Alur: Splash -> Onboarding -> Pilih Peran -> Login -> Beranda.
 Daftar: Login -> Daftar -> Pilih Peran -> Form -> Verifikasi Email (kode demo 123456) -> Berhasil -> Beranda.
-Peran: Pemesan, Justipper, Penjual (`src/components/auth/roles.js`). Login masih mode demo (belum ada backend).
+Peran: Pemesan, Justipper, Penjual (`src/components/auth/roles.js`). Dengan Firebase, pengguna dapat masuk memakai Google (pemilih akun selalu ditampilkan) atau email/password. Pendaftaran email membuat akun Firebase dan mengirim tautan verifikasi; Google langsung mendaftarkan atau masuk menggunakan peran yang dipilih. Satu akun Firebase dapat memiliki peran Pemesan dan Justipper sekaligus; pilih peran saat masuk dan gunakan menu Akun untuk berpindah peran. Akun lama tetap mempertahankan peran yang sudah terdaftar dan peran kedua ditambahkan saat akun yang sama masuk dengan peran tersebut. Tanpa konfigurasi, alur email/password dan pendaftaran hanya berjalan sebagai demo lokal.
 
 ## Tahap 4: Tampilan per peran
 - `components/pemesan/PemesanApp.jsx`: Beranda, Kategori, Daftar Produk, Detail.
@@ -59,5 +59,12 @@ Tiap peran punya statistik, aksen warna, label alamat, topik notifikasi, dan FAQ
 - **Tidak ada koneksi:** mendeteksi `online/offline` browser; tombol "Demo: simulasikan tanpa koneksi" di halaman Akun.
 
 ## Tahap 12: Chat
-`components/chat/`: `useChat.js` (state percakapan di `App.jsx`, dipakai bersama ketiga peran), `ChatList.jsx`, `ChatRoom.jsx`, `chatData.js`.
-Pemesan <-> Penjual (tombol "Chat Penjual" di Detail Barang membuka percakapan dengan kartu produk) dan Pemesan <-> Justipper. Pesan terkirim dari satu peran terlihat saat login sebagai peran lain selama halaman tidak di-refresh. Fitur: daftar + cari percakapan, badge belum dibaca (bottom nav, Beranda Justipper), kartu konteks produk/pesanan, balasan cepat per peran, kirim foto, indikator mengetik. Demo: lawan bicara membalas otomatis setelah ~2 detik.
+`components/chat/`: `useChat.js` (Firestore realtime dan data demo), `ChatList.jsx`, `ChatRoom.jsx`, `chatData.js`.
+Chat Pemesan <-> Justipper tersimpan dan diperbarui realtime melalui Cloud Firestore. Percakapan memerlukan lawan bicara yang sudah login dan memiliki profil Google Justip; chat dari produk/pesanan mencocokkan nama mitra/pemesan dengan profil tersebut. Chat Firebase menggunakan teks agar dapat berjalan tanpa mengaktifkan billing untuk Firebase Storage. Tanpa sesi Firebase, UI memakai data chat demo lokal dengan balasan otomatis dan lampiran demo.
+
+### Menyiapkan Firebase
+1. Buat project Firebase, tambahkan aplikasi Web, aktifkan **Google** dan **Email/Password** di Authentication > Sign-in method, lalu buat database Cloud Firestore dalam **Production mode**.
+2. Salin `.env.example` ke `.env.local` dan isi nilai konfigurasi Web App dari Firebase Console. `storageBucket` boleh disalin dari konfigurasi walaupun Storage belum diaktifkan. Jangan commit `.env.local`. Untuk Vercel, masukkan variabel yang sama ke Project Settings > Environment Variables.
+3. Tambahkan domain lokal/produksi ke Authentication > Settings > Authorized domains.
+4. Dari folder `justip`, jalankan `firebase login`, `firebase use --add`, lalu `firebase deploy --only firestore:rules` untuk memasang rules dari `firestore.rules`.
+5. `firebase.json` hanya memuat konfigurasi deploy rules; koleksi Firestore dibuat otomatis saat pengguna login/chat pertama kali.

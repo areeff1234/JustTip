@@ -40,7 +40,7 @@ export default function PenjualApp({ session, logout, acc, chat }) {
   };
 
   const room = chat.convs.find((c) => c.id === roomId);
-  if (room) return <div className="app"><div className="page"><ChatRoom conv={room} role="penjual" back={() => setRoomId(null)} send={chat.send} read={chat.read} /></div></div>;
+  if (room) return <div className="app"><div className="page"><ChatRoom conv={room} role="penjual" back={() => setRoomId(null)} send={chat.send} read={chat.read} subscribeMessages={chat.subscribeMessages} error={chat.error} allowImages={!chat.isRealtime} /></div></div>;
   const cur = orders.find((o) => o.id === oid);
   if (cur) return <div className="app"><div className="page"><OrderDetail o={cur} back={() => setOid(null)} setStatus={setStatus} />{toast}</div></div>;
   if (form) return <div className="app"><div className="page"><ProductForm edit={form.edit} back={() => setForm(null)} onSave={save} /></div></div>;
@@ -50,7 +50,7 @@ export default function PenjualApp({ session, logout, acc, chat }) {
         {tab === 'Beranda' && <PenjualHome products={products} goTab={setTab} todo={todo} seeOrders={seeOrders} onAdd={() => setForm({})} say={say} rowProps={rowProps} />}
         {tab === 'Produk' && <ProductsPage products={products} onAdd={() => setForm({})} {...rowProps} />}
         {tab === 'Pesanan' && <SellerOrders orders={orders} start={ostart} open={setOid} setStatus={setStatus} />}
-        {tab === 'Chat' && <ChatList list={chat.list('penjual')} role="penjual" open={setRoomId} />}
+        {tab === 'Chat' && <ChatList list={chat.list('penjual')} role="penjual" open={setRoomId} error={chat.error} />}
         {tab === 'Akun' && <Account role="penjual" acc={acc} logout={logout} say={say} onDeep={setDeep} stats={[['Produk', products.length], ['Pesanan', 56], ['Rating', '4.8']]} />}
         {toast}
       </div>

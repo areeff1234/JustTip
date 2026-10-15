@@ -47,6 +47,15 @@ export default function JustipperApp({ session, logout, acc, chat }) {
   const [toast, say] = useToast();
   const [form, setForm] = useState(null);
   const [subView, setSubView] = useState(null); // 'mp' | 'qris' | null
+  const openChat = async (request) => {
+    try {
+      const id = await chat.start(request);
+      setRoomId(id);
+      setTab('room');
+    } catch (error) {
+      say(error.message);
+    }
+  };
 
   // Status mapping berurutan:
   // new: baru / menunggu
@@ -125,8 +134,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
             back={() => setDetailOrder(null)}
             onChat={(o) => {
               setDetailOrder(null);
-              setRoomId(chat.start({ store: o.store || 'Hafiz Anggara', product: { name: o.name, price: o.price, art: o.art } }));
-              setTab('room');
+              openChat({ peerName: o.buyer, order: o });
             }}
             onUpdateStage={(id, nextStg, note, feeMethod) => {
               updateOrderStage(id, nextStg, note, feeMethod);
@@ -208,7 +216,7 @@ export default function JustipperApp({ session, logout, acc, chat }) {
             ]}
           />
         )}
-        {tab === 'Chat' && <ChatList list={chat.list('justipper')} role="justipper" open={(id) => { setRoomId(id); setTab('room'); }} />}
+        {tab === 'Chat' && <ChatList list={chat.list('justipper')} role="justipper" open={(id) => { setRoomId(id); setTab('room'); }} error={chat.error} />}
         {tab === 'room' && chat.convs.find((c) => c.id === roomId) && (
           <ChatRoom
             conv={chat.convs.find((c) => c.id === roomId)}
@@ -216,6 +224,9 @@ export default function JustipperApp({ session, logout, acc, chat }) {
             back={() => setTab('Chat')}
             send={chat.send}
             read={chat.read}
+            subscribeMessages={chat.subscribeMessages}
+            error={chat.error}
+            allowImages={!chat.isRealtime}
           />
         )}
         {toast}

@@ -19,16 +19,27 @@ export default function RoleSelect({ mode, back, onPick, goLogin, onSecretAdmin 
   };
 
   return (
-    <div className="auth">
+    <div className="auth role-page">
       <BackBtn onClick={back} />
-      <h1 className="h1">{reg ? 'Daftar Akun Justip' : 'Pilih Peran Anda'}</h1>
-      <p className="lead">{reg ? 'Pilih peran utama Anda untuk melanjutkan proses pendaftaran.' : 'Lanjutkan dengan peran yang sesuai dengan kebutuhan Anda.'}</p>
+      <div className="role-intro">
+        <span className="role-kicker"><i /> RUANG JASTIP ANDA</span>
+        <h1 className="h1">{reg ? 'Daftar Akun Justip' : 'Pilih Peran Anda'}</h1>
+        <p className="lead">{reg ? 'Pilih peran utama Anda untuk melanjutkan proses pendaftaran.' : 'Pilih cara paling pas untuk mulai menggunakan Justip.'}</p>
+        <div className="role-promise">
+          <Ic n="shield" size={18} />
+          <span><b>Satu akun, banyak kemudahan</b><small>Peran bisa diganti kapan saja.</small></span>
+        </div>
+      </div>
       <div className="roles">
         {ROLES.map((r) => (
-          <button key={r.id} className={`role ${sel === r.id ? 'on' : ''}`} onMouseEnter={() => setSel(r.id)} onFocus={() => setSel(r.id)} onClick={() => onPick(r.id)}>
+          <button key={r.id} type="button" className={`role ${sel === r.id ? 'on' : ''}`} onMouseEnter={() => setSel(r.id)} onFocus={() => setSel(r.id)} onClick={() => onPick(r.id)}>
             <RoleIcon n={r.icon} />
-            <span><b>{r.name}</b><small>{reg ? r.reg : r.pick}</small></span>
-            <Ic n="chevR" size={16} />
+            <span className="role-copy">
+              <small className="role-label">{r.id === 'pemesan' ? 'BELANJA LEBIH MUDAH' : 'PELUANG PENGHASILAN'}</small>
+              <b>{r.name}</b>
+              <small className="role-description">{reg ? r.reg : r.pick}</small>
+            </span>
+            <span className="role-action"><Ic n="chevR" size={17} /></span>
           </button>
         ))}
       </div>

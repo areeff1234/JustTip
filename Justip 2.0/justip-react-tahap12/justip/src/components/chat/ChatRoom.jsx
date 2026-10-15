@@ -4,14 +4,14 @@ import { ART } from '../art.jsx';
 import { ChAv } from './ChatList.jsx';
 import { QUICK, ROLE_LABEL, view, peerOf } from './chatData.js';
 
-export default function ChatRoom({ conv, role, back, send, read }) {
+export default function ChatRoom({ conv, role, back, send, read, subscribeMessages, error, allowImages }) {
   const [text, setText] = useState('');
   const box = useRef(null);
   const v = view(conv, role), peer = peerOf(conv, role), n = conv.msgs.length;
   useEffect(() => { read(conv.id, role); if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [n, conv.typing]);
+  useEffect(() => subscribeMessages?.(conv.id), [conv.id, subscribeMessages]);
 
   const go = (t) => { const m = t.trim(); if (m) { send(conv.id, role, { text: m }); setText(''); } };
-  const photo = (e) => { const f = e.target.files[0]; if (f) send(conv.id, role, { img: URL.createObjectURL(f) }); e.target.value = ''; };
   const x = conv.ctx;
   return (
     <>
@@ -37,8 +37,9 @@ export default function ChatRoom({ conv, role, back, send, read }) {
         {conv.typing === peer && <div className="ch-b typing" aria-label={`${v.name} sedang mengetik`}><i /><i /><i /></div>}
       </main>
       <div className="ch-quick" aria-label="Balasan cepat">{QUICK[role].map((q) => <button key={q} onClick={() => go(q)}>{q}</button>)}</div>
+      {error && <p className="ch-error" role="alert">{error}</p>}
       <form className="ch-comp" onSubmit={(e) => { e.preventDefault(); go(text); }}>
-        <label className="ch-att" aria-label="Kirim foto"><Ic n="camera" size={22} /><input type="file" accept="image/*" onChange={photo} /></label>
+        {allowImages && <label className="ch-att" aria-label="Kirim foto"><Ic n="camera" size={22} /></label>}
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Tulis pesan untuk ${ROLE_LABEL[peer].toLowerCase()}...`} aria-label="Tulis pesan" maxLength={500} />
         <button className="ch-send" disabled={!text.trim()} aria-label="Kirim"><Ic n="navi" size={20} /></button>
       </form>
